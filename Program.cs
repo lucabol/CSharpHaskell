@@ -56,7 +56,7 @@ By using language-ext, you can fake it so that it looks like this:
 
     static A Square<NumA, A>(A x) where NumA : struct, Num<A> => default(NumA).Product(x, x);
 
-    static void DoublePoly() {
+    static void SquarePoly() {
         WriteLine(Square<TInt, int>(2));
         WriteLine(Square<TDouble, double>(2.5));
     }
@@ -325,32 +325,6 @@ You can then pattern match on it in various obvious ways:
         _                                => throw new Exception("No known shape")
     };
 
-/**
-## Maybe (Or Option) type
-In Haskell you write:
-
-```Haskell
- f::Int -> Maybe Int
- f 0 = Nothing
- f x = Just x
-
- g::Maybe Int -> Int
- g Nothing  = 0
- g (Just x) = x
-
-```
-
-In C#, this easily translates to `Nullable` value and reference types. Assume you have `Nullable = enabled` in your project
-**/
-
-    static int? F(int i) => i switch
-    {
-        0 => new Nullable<int>(),
-        _ => i
-    };
-
-    static int G(int? i) => i ?? 0;
-
     static void CalcAreas() {
         var c = Circle(10);
         var r = Rectangle(10, 3);
@@ -360,6 +334,36 @@ In C#, this easily translates to `Nullable` value and reference types. Assume yo
         WriteLine(Area(r));
         WriteLine(Area(n));
     }
+
+/**
+## Maybe (Or Option) type
+In Haskell you write:
+
+```Haskell
+     f::Int -> Maybe Int
+     f 0 = Nothing
+     f x = Just x
+
+     g::Maybe Int -> Int
+     g Nothing  = 0
+     g (Just x) = x
+
+```
+
+In C#, this easily translates to `Nullable` value and reference types. Assume you have `Nullable = enabled` in your project
+**/
+
+    static int? F(int i) => i switch {
+        0 => new Nullable<int>(),
+        _ => i
+    };
+
+    static int G(int? i) => i ?? 0;
+
+/**
+## Conclusion
+Let's wrap all the samples with a `Main` function.
+**/
 
     static void Main() {
         UseFunc();
