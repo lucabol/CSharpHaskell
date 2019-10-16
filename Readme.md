@@ -523,9 +523,9 @@ Which loosely translate to the code below (pure C#, no language-ext) . A few com
 1. I tried to keep the translation as 1:1 as possible.
 2. I used expression bodied members for everything except IO returning function. That's a pleasing convention to me.
 3. Things translate rather straightforwardly except for:
-    a. Cheated using a simple `struct` instead of a `Record`, but often it is ok to do so.
-    b. Needed to use LINQ query syntax to translate more complex expressions, but cannot have lambadas in it.
-    c. Needed to do manual currying (`language-ext` would have beautified that).
+    1. Cheated using a simple `struct` instead of a `Record`, but often it is ok to do so.
+    2. Needed to use LINQ query syntax to translate more complex expressions, but cannot have lambadas in it.
+    3. Needed to do manual currying (`language-ext` would have beautified that).
 4. The line count for this example is roughly similar. I think that's random. Also the C# code 'extends to the right' more.
 5. Notably absent from the code are sum types, which would have been verbose to implement in C#.
 
