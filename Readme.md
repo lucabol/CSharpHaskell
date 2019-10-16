@@ -29,6 +29,7 @@ using static LanguageExt.Prelude;
 using System.Runtime.CompilerServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Drawing;
+using System.IO;
 
 public static class Core {
     static void UseFunc() => WriteLine("System.WriteLine as a floating function");
@@ -361,11 +362,43 @@ In C#, this easily translates to `Nullable` value and reference types. Assume yo
     static int G(int? i) => i ?? 0;
 ```
 
+## Main Method
+Let's wrap all the samples with a `Main` function.
+
+```csharp
+    static void Main() {
+        UseFunc();
+        SquarePoly();
+        WriteLine(Square(2) == SquareF(2));
+        WriteLine(Sum(new[] { 1, 2, 3, 4 }) == Sum1(new[] { 1, 2, 3, 4 }));
+        WriteLine(BmiTell(80, 100) == BmiTell1(80, 100));
+        WriteLine(BmiTell(80, 100) == BmiTell2(80, 100));
+
+        WriteLine(new PersonData("Bob", "Blake", 40) == new PersonData("Bob", "Blake", 40));
+        WriteLine(new PersonData1("Bob", "Blake", 40) == new PersonData1("Bob", "Blake", 40));
+        WriteLine("Before IL gen");
+        WriteLine(new PersonData2("Bob", "Blake", 40) == new PersonData2("Bob", "Blake", 40));
+        WriteLine(new PersonData2("Alphie", "Blake", 40) <= new PersonData2("Bob", "Blake", 40));
+        WriteLine("Already genned");
+        WriteLine(new PersonData2("Bob", "Blake", 40) == new PersonData2("Bob", "Blake", 40));
+        WriteLine(new PersonData2("Alphie", "Blake", 40) <= new PersonData2("Bob", "Blake", 40));
+
+        CalcAreas();
+
+        Hangman.Core.MainHangman();
+
+    }
+}
+```
+
 ## Full program
 
 Let's finish with a semi-working version of Hangman,
 from an exercise in [Haskell programming from first principles](http://haskellbook.com/),
 just to get an overall impression of how the two languages look for bigger things.
+
+The exercise was a fill-in-the-blanks kind of thing with the function names and types given,
+so I don't think I butcher it too badly, but maybe not.
 
 The Haskell code is:
 
@@ -402,8 +435,7 @@ gameWords = do
 
 randomWord :: WordList -> IO String
 randomWord wl = do
-      gm <- gameWords
-      randomIndex <- randomRIO ( 0, length gm - 1)
+      randomIndex <- randomRIO ( 0, length wl - 1)
       return $ wl !! randomIndex
 
 randomWord' :: IO String
@@ -486,30 +518,122 @@ main = do
       let puzzle = freshPuzzle (fmap toLower word)
       runGame puzzle
 ```
-## Conclusion
-Let's wrap all the samples with a `Main` function.
+Which loosely translate to the code below (pure C#, no language-ext) . A few comments:
+
+1. I tried to keep the translation as 1:1 as possible.
+2. I used expression bodied members for everything except IO returning function. That's a pleasing convention to me.
+3. Things translate rather straightforwardly except for:
+     a. Cheated using a simple `struct` instead of a `Record`, but often it is ok to do so.
+     b. Needed to use LINQ query syntax to translate more complex expressions, but cannot have lambadas in it.
+     c. Needed to do manual currying (`language-ext` would have beautified that).
+4. The line count for this example is roughly similar. I think that's random. Also the C# code 'extends to the right' more.
+5. Notably absent from the code are sum types, which would have been verbose to implement in C#.
 
 ```csharp
-    static void Main() {
-        UseFunc();
-        DoublePoly();
-        WriteLine(Square(2) == SquareF(2));
-        WriteLine(Sum (new[] { 1, 2, 3, 4 }) == Sum1(new[] { 1, 2, 3, 4 }));
-        WriteLine(BmiTell(80, 100) == BmiTell1(80, 100));
-        WriteLine(BmiTell(80, 100) == BmiTell2(80, 100));
+namespace Hangman {
+    using WordList = IEnumerable<String>;
+    using static System.Linq.Enumerable;
 
-        WriteLine(new PersonData("Bob", "Blake", 40)     == new PersonData("Bob", "Blake", 40));
-        WriteLine(new PersonData1("Bob", "Blake", 40)    == new PersonData1("Bob", "Blake", 40));
-        WriteLine("Before IL gen");
-        WriteLine(new PersonData2("Bob", "Blake", 40)    == new PersonData2("Bob", "Blake", 40));
-        WriteLine(new PersonData2("Alphie", "Blake", 40) <= new PersonData2("Bob", "Blake", 40));
-        WriteLine("Already genned");
-        WriteLine(new PersonData2("Bob", "Blake", 40) == new PersonData2("Bob", "Blake", 40));
-        WriteLine(new PersonData2("Alphie", "Blake", 40) <= new PersonData2("Bob", "Blake", 40));
+    static class Core {
 
-        CalcAreas();
+        const int MinWordLength = 5;
+        const int MaxWordLength = 9;
+
+        static WordList AllWords => File.ReadAllLines("data/dict.txt");
+
+        static WordList GameWords =>
+            AllWords.Where(w => w.Length > MinWordLength && w.Length < MaxWordLength);
+
+        static Random r = new Random();
+
+        static string RandomWord(WordList wl) => GameWords.ElementAt(r.Next(0, wl.Length()));
+
+        static string RandomWord1 => RandomWord(GameWords);
+
+        static char RenderPuzzleChar(char? c) => c ?? '_';
+
+        struct Puzzle { // Not implemented Eq and Ord because not needed in this program
+            public string Word;
+            public IEnumerable<char?> Discovered;
+            public string Guessed;
+
+            public override string ToString() =>
+                $"{string.Join(" ", Discovered.Select(RenderPuzzleChar))}"
+                    + " Guessed so far: " + Guessed;
+        }
+
+        static Puzzle FreshPuzzle(string s) => new Puzzle {
+            Word       = s,
+            Discovered = s.Select(_ => new Nullable<char>()),
+            Guessed    = ""
+        };
+
+        static bool CharInWord(Puzzle p, char c)     => p.Word.Contains(c);
+        static bool AlreadyGuessed(Puzzle p, char c) => p.Guessed.Contains(c);
+
+        // Can't assign lambda expression to range variable with let, hence separate function
+        static char? Zipper(char guessed, char wordChar, char? guessChar) =>
+            wordChar == guessed ? wordChar : guessChar;
+
+        // Manual curry. Could use language-ext to make it more beautiful.
+        static Func<char, char?, char?> Zipper1(char c) => (c1, c2) => Zipper(c, c1, c2);
+
+        static Puzzle FillInCharacter(Puzzle p, char c) =>
+            (from _ in "x"
+             let newFilledInSoFar = System.Linq.Enumerable.Zip<char, char?, char?>(p.Word, p.Discovered, Zipper1(c))
+             select new Puzzle {
+                Word = p.Word,
+                Discovered = newFilledInSoFar,
+                Guessed = c + p.Guessed
+            }).First();
+
+        static Puzzle HandleGuess(Puzzle puzzle, char guess) {// Braces means IO ...
+            WriteLine($"Your guess was {guess}");
+            switch (CharInWord(puzzle, guess), AlreadyGuessed(puzzle, guess)) {
+                case (_, true):
+                    WriteLine("You already guessed that character, pick something else!");
+                    return puzzle;
+                case (true, _):
+                    WriteLine("This character was in the word,filling in the word accordingly");
+                    return FillInCharacter(puzzle, guess);
+                case (false, _):
+                    WriteLine("This character wasn't in the word, try again.");
+                    return FillInCharacter(puzzle, guess);
+            }
+        }
+
+        static void GameOver(Puzzle p) {
+            if(p.Guessed.Length > 7) {
+                WriteLine("You lose!");
+                WriteLine($"The word was {p.Word}");
+                Environment.Exit(0);
+            }
+        }
+
+        static void GameWin(Puzzle p) {
+            if(p.Discovered.All(c => c.HasValue)) {
+                WriteLine("You win!");
+                Environment.Exit(0);
+            }
+        }
+
+        static void RunGame(Puzzle puzzle) {
+            while(true) {
+                GameOver(puzzle);
+                GameWin(puzzle);
+                WriteLine($"Current puzzle is: {puzzle}");
+                WriteLine("Guess a letter: ");
+                var guess = ReadLine();
+                if(guess.Length == 1) RunGame(HandleGuess(puzzle, guess[0]));
+                else WriteLine("Your guess must be a single char");
+            }
+        }
+
+        public static void MainHangman() {
+            var puzzle = FreshPuzzle(RandomWord1);
+            RunGame(puzzle);
+        }
 
     }
-
 }
 ```
