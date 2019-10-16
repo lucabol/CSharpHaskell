@@ -137,8 +137,6 @@ Language-ext allows you a simpler syntax, with more flexibility on what you can 
         match(list,
                () => 0,
                (x, xs) => x + Sum1(xs));
-
-    
 ```
 
 Obviously you always have to be careful with recursion in C# ([here](https://github.com/dotnet/csharplang/issues/2544)).
@@ -150,15 +148,14 @@ Let's explore guards. Case expressions have an identical translation in C#.
 In Haskell guards are used as below:
 
 ```haskell
-            bmiTell :: (RealFloat a) => a -> a -> String  
-            bmiTell weight height  
-                    | weight / height ^ 2 <= 18.5 = "Under"  
-                    | weight / height ^ 2 <= 25.0 = "Normal"  
-                    | weight / height ^ 2 <= 30.0 = "Over"  
-                    | otherwise                   = "Way over"
+    bmiTell :: (RealFloat a) => a -> a -> String  
+    bmiTell weight height  
+            | weight / height ^ 2 <= 18.5 = "Under"  
+            | weight / height ^ 2 <= 25.0 = "Normal"  
+            | weight / height ^ 2 <= 30.0 = "Over"  
+            | otherwise                   = "Way over"
 ```
 Which can be coded in C# as:
-    
 
 ```csharp
     static string BmiTell(double weight, double height) =>
@@ -241,7 +238,7 @@ In essence, you have to implement a bunch of interfaces and operators, somehow s
 
         public override int GetHashCode() => (FirstName, LastName, Age).GetHashCode();
         public override bool Equals(object other) => other is PersonData l && Equals(l);
-        public bool Equals(PersonData other) => LastName == other.LastName && FirstName == other.FirstName && Age == other.Age;
+        public bool Equals(PersonData oth) => LastName == oth.LastName && FirstName == oth.FirstName && Age == oth.Age;
         public static bool operator ==(PersonData lhs, PersonData rhs) => lhs.Equals(rhs);
         public static bool operator !=(PersonData lhs, PersonData rhs) => !(lhs == rhs);
     }
@@ -260,7 +257,7 @@ Using a class (as below) avoids that, but loses the pass by value semantic.
         public PersonData1(string first, string last, int age) => (LastName, FirstName, Age) = (last, first, age);
 
         public override int GetHashCode() => (FirstName, LastName, Age).GetHashCode();
-        public override bool Equals(object other) => other is PersonData l && Equals(l);
+        public override bool Equals(object oth) => oth is PersonData l && Equals(l);
         public bool Equals(PersonData1 other) => LastName == other.LastName && FirstName == other.FirstName && Age == other.Age;
         public static bool operator ==(PersonData1 lhs, PersonData1 rhs) => lhs.Equals(rhs);
         public static bool operator !=(PersonData1 lhs, PersonData1 rhs) => !(lhs == rhs);
@@ -279,26 +276,23 @@ But obviously it uses IL generation that is slow the first time around. Try runn
         public PersonData2(string first, string last, int age) => (LastName, FirstName, Age) = (last, first, age);
 
     }
-
-    
 ```
 
 ## Sum types (aka Discriminated Union)
 In Haskell you write:
 
 ```haskell
-        data Shape =
-                  Circle Float Float Float
-                | Rectangle Float Float Float Float
-                | NoShape
-                deriving (Show)  
+    data Shape =
+                Circle Float Float Float
+            | Rectangle Float Float Float Float
+            | NoShape
+            deriving (Show)  
 ```
 
 There is no obvious equivalent in C#, and different libraries has sprung up to propose possible solutions (but not language-ext)
 (i.e. [here](https://github.com/Galad/CSharpDiscriminatedUnion) or [here](https://github.com/mcintyre321/OneOf)).
 
 One possible 'pure language' implementation, not considering structural equality/ordering/hash, follows:
-    
 
 ```csharp
     abstract class Shape {
@@ -365,10 +359,19 @@ In C#, this easily translates to `Nullable` value and reference types. Assume yo
     };
 
     static int G(int? i) => i ?? 0;
+
+    
 ```
+
+## Full program
+
+Let's finish with a semi-working version of Hangman,
+from an exercise in [Haskell programming from first principles](http://haskellbook.com/).
+    
 
 ## Conclusion
 Let's wrap all the samples with a `Main` function.
+    
 
 ```csharp
     static void Main() {

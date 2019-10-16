@@ -360,10 +360,16 @@ In C#, this easily translates to `Nullable` value and reference types. Assume yo
 
     static int G(int? i) => i ?? 0;
 
-/**
+    /**
+## Full program
+
+Let's finish with a semi-working version of Hangman,
+from an exercise in [Haskell programming from first principles](http://haskellbook.com/).
+    **/
+    /**
 ## Conclusion
 Let's wrap all the samples with a `Main` function.
-**/
+    **/
 
     static void Main() {
         UseFunc();
