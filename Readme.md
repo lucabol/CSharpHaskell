@@ -1,15 +1,15 @@
 # Abstract
 Writing C# functional code has become easier with each new release of the language (i.e. nullable ref types, tuples, switch expr, ...).
 This document presents a review of the current status of *basic* functional features for C# 8.0.
-It focuses mostly on syntax and aims to achieve its goal mostly by the usage of code examples.
-It doesn't touches on more advanced arguments as Monad, Functors, etc ...
+It focuses mostly on syntax and aims to achieve its goal using code examples.
+It doesn't touches on more advanced topics as Monad, Functors, etc ...
 
-Haskell has been chosen as the 'comparison' language (and examples from [here](http://learnyouahaskell.com/).
+Haskell has been chosen as the 'comparison' language (using few examples from [here](http://learnyouahaskell.com/) and elsewhere).
 This is not intended as a statement of value of one language vs the other.
 The languages are profoundly  different in underlying philosophies.
 They both do much more than what is presented here (i.e. C# supports OO and imperative style, while Haskell goes much deeper in type system power etc...).
 
-I also present samples of usage of [language-ext](https://github.com/louthy/language-ext) to show what can be achieved by C# + a functional library.
+I also present samples of usage of [language-ext](https://github.com/louthy/language-ext) to show what can be achieved in C# using a functional library.
 
 
 ## Using a library of functions
@@ -17,6 +17,8 @@ In C# you can use static functions as if they were 'floating' by importing the s
 
 ```csharp
 using System;
+using System.IO;
+
 using LanguageExt;
 using LanguageExt.TypeClasses;
 using LanguageExt.ClassInstances;
@@ -26,12 +28,9 @@ using static System.Console;
 using static System.Linq.Enumerable;
 using static System.Math;
 using static LanguageExt.Prelude;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography.X509Certificates;
-using System.Drawing;
-using System.IO;
 
 public static class Core {
+
     static void UseFunc() => WriteLine("System.WriteLine as a floating function");
 ```
 
@@ -39,11 +38,10 @@ public static class Core {
 In Haskell, a simple function might be written as:
 ```haskell
    square :: Num a => a -> a
-
    square x = x * x
 ```
 
-Which in C# would look like the below.
+Which in C# looks like the below.
 
 ```csharp
     static int Square(int x) => x * x; 
@@ -77,7 +75,7 @@ Here is an example in Haskell:
     lucky x = show x
 ```
 
-In C#, you could write it in a few ways. Either with a switch expression ...
+In C#, you can write it in a few ways. Either as a function static property ...
 
 ```csharp
     static Func<int, string> Lucky = x => x switch {
@@ -95,7 +93,7 @@ Or with a normal function:
     };
 ```
 
-Or using the ternary operator (a perennial favorite of mine).
+Or even using the ternary operator (a perennial favorite of mine).
 
 ```csharp
     static string Lucky2(int x) => x == 7 ? "LUCKY NUMBER SEVEN!"
@@ -128,14 +126,19 @@ Writing this in standard C# looks like this:
 ```csharp
     static int Sum(IEnumerable<int> l) => l.Count() == 0
                                             ? 0
-                                            : l.Head() + Sum(l.Tail());
+                                            : l.First() + Sum(l.Skip(1));
+
+    static int Sum1(IEnumerable<int> l) => l.Count() switch {
+        0 => 0,
+        _ => l.First() + Sum(l.Skip(1))
+    };
 ```
 
-Language-ext allows you a simpler syntax, with more flexibility on what you can match against:
+Language-ext gives you a simpler syntax, with more flexibility on what you can match against:
 
 ```csharp
-    static int Sum1(IEnumerable<int> list) =>
-        match(list,
+    static int Sum2(Seq<int> l) =>
+        match(l,
                () => 0,
                (x, xs) => x + Sum1(xs));
 ```
@@ -363,14 +366,15 @@ In C#, this easily translates to `Nullable` value and reference types. Assume yo
 ```
 
 ## Main Method
-Let's wrap all the samples with a `Main` function.
+Let's wrap all the samples with a `Main` function and then write a full program.
 
 ```csharp
     static void Main() {
         UseFunc();
         SquarePoly();
         WriteLine(Square(2) == SquareF(2));
-        WriteLine(Sum(new[] { 1, 2, 3, 4 }) == Sum1(new[] { 1, 2, 3, 4 }));
+        WriteLine(Sum(new[] { 1, 2, 3, 4 })  == Sum1(new[] { 1, 2, 3, 4 }));
+        WriteLine(Sum1(new[] { 1, 2, 3, 4 }) == Sum2(new[] { 1, 2, 3, 4 }.ToSeq()));
         WriteLine(BmiTell(80, 100) == BmiTell1(80, 100));
         WriteLine(BmiTell(80, 100) == BmiTell2(80, 100));
 
