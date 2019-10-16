@@ -8,7 +8,7 @@ It doesn't touches on more advanced topics as Monad, Functors, etc ...
 Haskell has been chosen as the 'comparison' language (using few examples from [here](http://learnyouahaskell.com/) and elsewhere).
 This is not intended as a statement of value of one language vs the other.
 The languages are profoundly  different in underlying philosophies.
-They both do much more than what is presented here (i.e. C# supports OO and imperative style, while Haskell goes much deeper in type system power etc...).
+They both do much more than what is presented here (i.e. C# supports OO and imperative styles, while Haskell goes much deeper in type system power etc...).
 
 I also present samples of usage of [language-ext](https://github.com/louthy/language-ext) to show what can be achieved in C# using a functional library.
 **/
