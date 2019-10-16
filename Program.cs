@@ -112,7 +112,7 @@ Pattern matching on tuples works with similar syntax:
             _            => false
         };
 
-    /**        
+/**        
 In Haskell you can match on lists as follows:
 
 ```haskell
@@ -127,6 +127,9 @@ Writing this in standard C# looks like this:
                                             ? 0
                                             : l.First() + Sum(l.Skip(1));
 
+/**
+Or this:
+**/
     static int Sum1(IEnumerable<int> l) => l.Count() switch {
         0 => 0,
         _ => l.First() + Sum(l.Skip(1))
@@ -144,10 +147,10 @@ Language-ext gives you a simpler syntax, with more flexibility on what you can m
 /**
 
 Obviously you always have to be careful with recursion in C# ([here](https://github.com/dotnet/csharplang/issues/2544)).
-Better use the various methods on `Enumerable`.
+It is better to use the various methods on `Enumerable` (i.e. `Aggregate`) that abstract common recursion patterns.
 
 ## Guards (and case expressions)
-Let's explore guards. Case expressions have an identical translation in C#.
+Let's explore guards. Haskell `Case` expressions have an identical translation in C#.
             
 In Haskell guards are used as below:
 
@@ -206,6 +209,10 @@ Notice that this is more similar to `let` expressions in Haskell, as they come b
         };
     }
 
+/**
+In LINQ query syntax you get to keep your expression bodied member ...
+**/
+
     static string BmiTell2(double weight, double height) =>
         (   from _ in "x"
             let bmi     = Pow(weight / height, 2)
@@ -230,7 +237,27 @@ In Haskell you define a product type as below:
 
 In C#, it is currently complicated to define an immutable product type with structural equality, structural ordering and efficient hashing.
 
-In essence, you have to implement a bunch of interfaces and operators, somehow similar to below (and I am not implementing ordering, and it is probably not too efficient either).
+If you are certain that you are not going to compare your records and trust 'immutability by convention', then the syntax is not bad:
+**/
+
+    struct Person {
+        public string FirstName;
+        public string LastName;
+        public int Age;
+    }
+
+/**
+And to create one, it is just:
+**/
+
+    static Person CreatePersonExample() => new Person {
+        FirstName = "Rob",
+        LastName  = "Smith",
+        Age       = 40
+    };
+
+/**
+But if you want to do it right, you have to implement a bunch of interfaces and operators, somehow similar to below (and I am not implementing ordering, and it is probably not too efficient either).
 **/
 
     public readonly struct PersonData: IEquatable<PersonData> {
@@ -241,7 +268,7 @@ In essence, you have to implement a bunch of interfaces and operators, somehow s
         public PersonData(string first, string last, int age) => (LastName, FirstName, Age) = (last, first, age);
 
         public override int GetHashCode() => (FirstName, LastName, Age).GetHashCode();
-        public override bool Equals(object other) => other is PersonData l && Equals(l);
+        public override bool Equals(object? other) => other is PersonData l && Equals(l);
         public bool Equals(PersonData oth) => LastName == oth.LastName && FirstName == oth.FirstName && Age == oth.Age;
         public static bool operator ==(PersonData lhs, PersonData rhs) => lhs.Equals(rhs);
         public static bool operator !=(PersonData lhs, PersonData rhs) => !(lhs == rhs);
@@ -261,15 +288,16 @@ Using a class (as below) avoids that, but loses the pass by value semantic.
         public PersonData1(string first, string last, int age) => (LastName, FirstName, Age) = (last, first, age);
 
         public override int GetHashCode() => (FirstName, LastName, Age).GetHashCode();
-        public override bool Equals(object oth) => oth is PersonData l && Equals(l);
+        public override bool Equals(object? oth) => oth is PersonData l && Equals(l);
         public bool Equals(PersonData1 other) => LastName == other.LastName && FirstName == other.FirstName && Age == other.Age;
         public static bool operator ==(PersonData1 lhs, PersonData1 rhs) => lhs.Equals(rhs);
         public static bool operator !=(PersonData1 lhs, PersonData1 rhs) => !(lhs == rhs);
     }
 
 /**
-So, there is no easy fix. Using Language-ext you can do it much more simply, by inheritance.
-But obviously it uses IL generation that is slow the first time around. Try running the code and notice the delay when IL generating.
+So, there is no easy fix. Using Language-ext you can do it more simply, by inheritance.
+But it uses IL generation that is slow the first time around, which might be a problem in certain scenarios: I.e. Azure Functions.
+Try running the code and notice the delay when IL generating.
 **/
 
     public class PersonData2 : Record<PersonData2> {
@@ -278,7 +306,6 @@ But obviously it uses IL generation that is slow the first time around. Try runn
         public readonly int Age;
 
         public PersonData2(string first, string last, int age) => (LastName, FirstName, Age) = (last, first, age);
-
     }
 
 /**
@@ -287,7 +314,7 @@ In Haskell you write:
 
 ```haskell
     data Shape =
-                Circle Float Float Float
+              Circle Float Float Float
             | Rectangle Float Float Float Float
             | NoShape
             deriving (Show)  
@@ -296,7 +323,7 @@ In Haskell you write:
 There is no obvious equivalent in C#, and different libraries has sprung up to propose possible solutions (but not language-ext)
 (i.e. [here](https://github.com/Galad/CSharpDiscriminatedUnion) or [here](https://github.com/mcintyre321/OneOf)).
 
-One possible 'pure language' implementation, not considering structural equality/ordering/hash, follows:
+One possible 'pure language' implementation, not implementing structural equality/ordering/hash, follows:
 **/
 
     abstract class Shape {
@@ -318,7 +345,7 @@ One possible 'pure language' implementation, not considering structural equality
     static Shape.NoShape NoShape()                       => new Shape.NoShape();
 
 /**
-You can then pattern match on it in various obvious ways:
+You can then pattern match over it in various obvious ways:
 **/
 
     static double Area(Shape s) => s switch
@@ -363,7 +390,15 @@ In C#, this easily translates to `Nullable` value and reference types. Assume yo
     };
 
     static int G(int? i) => i ?? 0;
+
 /**
+And for reference types ...
+**/
+
+    static int? GetAge(PersonData1? p) => p?.Age;
+    static int  GetAge2(PersonData1 p) => p?.Age ?? 0;
+
+ /**
 ## Main Method
 Let's wrap all the samples with a `Main` function and then write a full program.
 **/
@@ -398,10 +433,10 @@ Let's wrap all the samples with a `Main` function and then write a full program.
 
 Let's finish with a semi-working version of Hangman,
 from an exercise in [Haskell programming from first principles](http://haskellbook.com/),
-just to get an overall impression of how the two languages look for bigger things.
+just to get an overall impression of how the two languages look for slightly bigger things.
 
-The exercise was a fill-in-the-blanks kind of thing with the function names and types given,
-so I don't think I butcher it too badly, but maybe not.
+The exercise in the book is a fill-in-the-blanks kind of thing with the function names and types given,
+so I don't think I butchered it too badly, but maybe not.
 
 The Haskell code is:
 
