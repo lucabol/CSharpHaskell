@@ -362,7 +362,7 @@ In C#, this easily translates to `Nullable` value and reference types. Assume yo
     static int G(int? i) => i ?? 0;
 /**
 ## Main Method
-Let's wrap all the samples with a `Main` function.
+Let's wrap all the samples with a `Main` function and then write a full program.
 **/
 
     static void Main() {
